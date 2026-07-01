@@ -27,7 +27,10 @@ def consultar(codigo: str) -> str:
             return formatar_erro(resp.status_code)
 
         data = resp.json()
-        return formatar_rastreio(codigo, data, max_eventos=settings.MAX_EVENTOS)
+        if not data.get("success"):
+            logger.warning("API retornou success=false para %s: %s", codigo, data.get("message"))
+
+        return formatar_rastreio(codigo, data)
 
     except requests.exceptions.Timeout:
         logger.warning("Timeout ao consultar %s", codigo)

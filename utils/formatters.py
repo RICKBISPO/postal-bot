@@ -1,53 +1,49 @@
+from datetime import datetime, timezone
 from typing import Any
 
 
-def formatar_rastreio(codigo: str, data: dict[str, Any], max_eventos: int = 5) -> str:
-    eventos = data.get("eventos", [])
+def _formatar_data(iso: str) -> str:
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        dt_local = dt.astimezone()
+        return dt_local.strftime("%d/%m/%Y %H:%M")
+    except (ValueError, AttributeError):
+        return iso
 
-    if not eventos:
+
+def formatar_rastreio(codigo: str, data: dict[str, Any]) -> str:
+    if not data.get("success") or data.get("status") != "found":
         return (
             f"📦 *Rastreamento: `{codigo.upper()}`*\n\n"
-            "Encomenda encontrada, mas ainda sem eventos registrados.\n"
-            "_Tente novamente em algumas horas._"
+            "❌ Objeto não encontrado. Verifique o código e tente novamente.\n"
+            "_Pode levar até 24h para aparecer no sistema._"
         )
 
-    transportadora = data.get("transportadora", {}).get("nome", "Correios")
-    servico = data.get("servico", {}).get("nome", "")
-    total = len(eventos)
+    ev = data.get("eventoMaisRecente", {})
+    descricao = ev.get("descricao", "")
+    detalhe = ev.get("detalhe", "")
+    local = ev.get("local", "")
+    data_hora = _formatar_data(ev.get("data", "")) if ev.get("data") else ""
+    link = data.get("linkDetalhesCompletos", "")
 
-    linhas = [f"📦 *Rastreamento: `{codigo.upper()}`*"]
-    if servico:
-        linhas.append(f"🚚 {transportadora} — _{servico}_")
-    else:
-        linhas.append(f"🚚 {transportadora}")
-    linhas.append("")
+    linhas = [f"📦 *Rastreamento: `{codigo.upper()}`*", ""]
 
-    for ev in eventos[:max_eventos]:
-        data_hora = f"{ev.get('data', '')} {ev.get('hora', '')}".strip()
+    linha_evento = f"🕐 *{data_hora}*" if data_hora else ""
+    if local:
+        linha_evento += f" — {local}"
+    if linha_evento:
+        linhas.append(linha_evento)
 
-        unidade = ev.get("unidade", {})
-        endereco = unidade.get("endereco", {})
-        cidade = endereco.get("cidade", "") or ev.get("local", "")
-        uf = endereco.get("uf", "")
+    if descricao:
+        linhas.append(descricao)
+    if detalhe:
+        linhas.append(f"_{detalhe}_")
 
-        status = ev.get("descricao") or ev.get("status", "")
-        detalhe = ev.get("detalhe", "")
+    if link:
+        linhas.append("")
+        linhas.append(f"🔗 [Ver detalhes completos]({link})")
 
-        linha = f"🕐 *{data_hora}*"
-        if cidade:
-            linha += f" — {cidade}"
-            if uf:
-                linha += f"/{uf}"
-        linha += f"\n{status}"
-        if detalhe:
-            linha += f"\n_{detalhe}_"
-
-        linhas.append(linha)
-
-    if total > max_eventos:
-        linhas.append(f"\n_...e mais {total - max_eventos} evento(s) anteriores._")
-
-    return "\n\n".join(linhas)
+    return "\n".join(linhas)
 
 
 def formatar_erro(status_code: int) -> str:
