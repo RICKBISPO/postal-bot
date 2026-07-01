@@ -1,0 +1,13 @@
+app = "postal-bot"
+primary_region = "iad"
+
+[build]
+  builder = "paketobuildpacks/builder:base"
+
+[processes]
+  app = "python main.py"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
