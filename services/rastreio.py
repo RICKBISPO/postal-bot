@@ -6,7 +6,7 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 _BASE_URL = "https://seurastreio.com.br/api/public/rastreio/{codigo}"
-_HEADERS = {"Authorization": settings.SEURASTREIO_API_KEY}
+_HEADERS = {"Authorization": f"Bearer {settings.SEURASTREIO_API_KEY}"}
 
 
 def consultar(codigo: str) -> str:
