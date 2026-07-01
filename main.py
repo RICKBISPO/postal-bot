@@ -11,6 +11,7 @@ Pré-requisitos:
     2. Copie .env.example para .env e preencha TELEGRAM_TOKEN e SEURASTREIO_API_KEY
 """
 
+import asyncio
 import sys
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
@@ -36,21 +37,27 @@ def build_app():
     return app
 
 
+async def run() -> None:
+    app = build_app()
+
+    async with app:
+        await app.start()
+        await app.updater.start_polling(
+            allowed_updates=["message"],
+            drop_pending_updates=True,
+        )
+        logger.info("Bot online. Pressione Ctrl+C para parar.")
+        await asyncio.Event().wait()
+
+
 def main() -> None:
     logger.info("Iniciando bot de rastreamento...")
 
     try:
-        app = build_app()
+        asyncio.run(run())
     except EnvironmentError as exc:
         logger.critical("Erro de configuração: %s", exc)
         sys.exit(1)
-
-    logger.info("Bot online. Pressione Ctrl+C para parar.")
-
-    app.run_polling(
-        allowed_updates=["message"],
-        drop_pending_updates=True,   # ignora mensagens recebidas enquanto o bot estava offline
-    )
 
 
 if __name__ == "__main__":
